@@ -29,21 +29,22 @@
 
 #include "fake_atomic.h"
 
-
-__global__ void device_reduce_atomic_kernel(int *in, int* out, int N) {
-  int sum=int(0);
+template <typename T>
+__global__ void device_reduce_atomic_kernel(T *in, T* out, int N) {
+  T sum=T(0);
   for(int i=blockIdx.x*blockDim.x+threadIdx.x;i<N;i+=blockDim.x*gridDim.x) {
     sum+=in[i];
   }
   atomicAdd(out,sum);
 }
 
-void device_reduce_atomic(int *in, int* out, int N) {
+template <typename T>
+void device_reduce_atomic(T *in, T* out, int N) {
   int threads=256;
   int blocks=min((N+threads-1)/threads,2048);
 
-  cudaMemsetAsync(out,0,sizeof(int));
-  device_reduce_atomic_kernel<<<blocks,threads>>>(in,out,N); 
+  cudaMemsetAsync(out,T(0),sizeof(T));
+  device_reduce_atomic_kernel<T><<<blocks,threads>>>(in,out,N); 
 }
 
 __global__ void device_reduce_atomic_kernel_vector2(int *in, int* out, int N) {
@@ -88,4 +89,28 @@ void device_reduce_atomic_vector4(int *in, int* out, int N) {
 
   cudaMemsetAsync(out,0,sizeof(int));
   device_reduce_atomic_kernel_vector4<<<blocks,threads>>>(in,out,N); 
+}
+
+template <typename T, typename T2, int T3>
+__global__ void device_reduce_atomic_kernel_vector(T *in, T* out, int N) {
+  T sum=0;
+  int idx=blockIdx.x*blockDim.x+threadIdx.x;
+  for(int i=idx;i<N/T3;i+=blockDim.x*gridDim.x) {
+    T2 val=reinterpret_cast<T2*>(in)[i];
+    sum+=val.x+val.y;
+  }
+  int i=idx+N/T3*T3;
+  if(i<N)
+    sum+=in[i];
+
+  atomicAdd(out,sum);
+}
+
+template <typename T, typename T2, int T3>
+void device_reduce_atomic_vector(T *in, T* out, int N) {
+  int threads=256;
+  int blocks=min((N/T3+threads-1)/threads,2048);
+
+  cudaMemsetAsync(out,T(0),sizeof(T));
+  device_reduce_atomic_kernel_vector<T,T2,T3><<<blocks,threads>>>(in,out,N);
 }

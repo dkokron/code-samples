@@ -29,9 +29,10 @@
 
 #include "warp_reduce.h"
 
+template <typename T>
 __inline__ __device__
-int blockReduceSum(int val) {
-  static __shared__ int shared[32];
+T blockReduceSum(T val) {
+  static __shared__ T shared[32];
   int lane=threadIdx.x%warpSize;
   int wid=threadIdx.x/warpSize;
   val=warpReduceSum(val);
@@ -41,7 +42,7 @@ int blockReduceSum(int val) {
   __syncthreads();
 
   //ensure we only grab a value from shared memory if that warp existed
-  val = (threadIdx.x<blockDim.x/warpSize) ? shared[lane] : int(0);
+  val = (threadIdx.x<blockDim.x/warpSize) ? shared[lane] : T(0);
   if(wid==0) val=warpReduceSum(val);
 
   return val;
