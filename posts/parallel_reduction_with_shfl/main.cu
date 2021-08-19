@@ -92,7 +92,9 @@ void RunTest(const char* label, void (*fptr)(int* in, int* out, int N), int N, i
   else
     valid="INCORRECT";
 
-  printf("%s: %s, Time: %f s, GB/s: %f\n", label, valid, time_s, GBs); 
+  printf("%s: \033[31m%s\033[0m, Time: %f s, GB/s: \033[32m%f\033[0m\n", label, valid, time_s, GBs); 
+  if(sum!=checksum) printf("sum=%f checksum=%f diff=\033[33m%f\033[0m\n\n", sum, checksum, checksum-sum);
+
   cudaEventDestroy(start);
   cudaEventDestroy(stop);
   cudaFree(in);
@@ -145,7 +147,9 @@ void RunTestCub(const char* label, int N, int REPEAT, int* src, int checksum) {
   else
     valid="INCORRECT";
 
-  printf("%s: %s, Time: %f s, GB/s: %f\n", label, valid, time_s, GBs); 
+  printf("%s: \033[31m%s\033[0m, Time: %f s, GB/s: \033[32m%f\033[0m\n", label, valid, time_s, GBs);
+  if(sum!=checksum) printf("sum=%d checksum=%f diff=\033[33m%d\033[0m\n\n", sum, checksum, checksum-sum);
+
   cudaEventDestroy(start);
   cudaEventDestroy(stop);
   cudaFree(in);
@@ -163,7 +167,7 @@ int main(int argc, char** argv)
   int NUM_ELEMS=atoi(argv[1]);
   int REPEAT=atoi(argv[2]);
 
-  printf("NUM_ELEMS: %d, REPEAT: %d\n", NUM_ELEMS, REPEAT);
+  printf("NUM_ELEMS: %d, REPEAT: %d, DATATYPE: %s\n", NUM_ELEMS, REPEAT, typeid(int).name());
 
   int* vals=(int*)malloc(NUM_ELEMS*sizeof(int));
   int checksum =0;
