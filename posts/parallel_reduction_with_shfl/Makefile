@@ -25,7 +25,7 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 reduce: main.cu *.h
-	nvcc -O3 main.cu -o reduce -arch=sm_35
+	nvcc -O3 -std=c++17 main.cu -o reduce -arch=sm_70 -I/nasa/cuda/11.2/targets/x86_64-linux/include
 
 clean:
 	rm -f reduce
