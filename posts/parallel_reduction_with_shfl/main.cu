@@ -30,7 +30,8 @@
 #include "device_reduce_warp_atomic.h"
 #include "device_reduce_stable.h"
 #include "vector_functions.h"
-#include "cub/cub/cub.cuh"
+#include "cub/cub.cuh"
+//#include "cub/cub/cub.cuh"
 
 #define cudaCheckError() {                                          \
   cudaError_t e=cudaGetLastError();                                  \
@@ -40,7 +41,7 @@
   }                                                                  \
 }
 
-void RunTest(char* label, void (*fptr)(int* in, int* out, int N), int N, int REPEAT, int* src, int checksum) {
+void RunTest(const char* label, void (*fptr)(int* in, int* out, int N), int N, int REPEAT, int* src, int checksum) {
   int *in, *out;
   
   //allocate a buffer that is at least large enough that we can ensure it doesn't just sit in l2.
@@ -85,7 +86,7 @@ void RunTest(char* label, void (*fptr)(int* in, int* out, int N), int N, int REP
   cudaMemcpy(&sum,out,sizeof(int),cudaMemcpyDeviceToHost);
   cudaCheckError();
 
-  char *valid;
+  static const char *valid;
   if(sum==checksum) 
     valid="CORRECT";
   else
@@ -99,7 +100,7 @@ void RunTest(char* label, void (*fptr)(int* in, int* out, int N), int N, int REP
   cudaCheckError();
 }
 
-void RunTestCub(char* label, int N, int REPEAT, int* src, int checksum) {
+void RunTestCub(const char* label, int N, int REPEAT, int* src, int checksum) {
   int *in, *out;
   cudaEvent_t start,stop;
   
@@ -113,7 +114,7 @@ void RunTestCub(char* label, int N, int REPEAT, int* src, int checksum) {
 
   size_t temp_storage_bytes;
   int* temp_storage=NULL;
-  cub::DeviceReduce::Reduce(temp_storage, temp_storage_bytes, in, out, N, cub::Sum());
+  cub::DeviceReduce::Sum(temp_storage, temp_storage_bytes, in, out, N);
   cudaMalloc(&temp_storage,temp_storage_bytes);
 
   cudaDeviceSynchronize();
@@ -121,7 +122,7 @@ void RunTestCub(char* label, int N, int REPEAT, int* src, int checksum) {
   cudaEventRecord(start);
 
   for(int i=0;i<REPEAT;i++) {
-    cub::DeviceReduce::Reduce(temp_storage, temp_storage_bytes, in, out, N, cub::Sum());
+    cub::DeviceReduce::Sum(temp_storage, temp_storage_bytes, in, out, N);
   }
   cudaEventRecord(stop);
   cudaDeviceSynchronize();
@@ -138,7 +139,7 @@ void RunTestCub(char* label, int N, int REPEAT, int* src, int checksum) {
   cudaMemcpy(&sum,out,sizeof(int),cudaMemcpyDeviceToHost);
   cudaCheckError();
 
-  char *valid;
+  static const char *valid;
   if(sum==checksum) 
     valid="CORRECT";
   else
