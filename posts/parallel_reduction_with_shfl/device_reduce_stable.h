@@ -1,3 +1,4 @@
+#include "hip/hip_runtime.h"
 /* Copyright (c) 1993-2015, NVIDIA CORPORATION. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -43,8 +44,8 @@ void device_reduce_stable(int *in, int* out, int N) {
   int threads=512;
   int blocks=min((N+threads-1)/threads,1024);
 
-  device_reduce_stable_kernel<<<blocks,threads>>>(in,out,N);
-  device_reduce_stable_kernel<<<1,1024>>>(out,out,blocks); 
+  hipLaunchKernelGGL(device_reduce_stable_kernel, dim3(blocks), dim3(threads), 0, 0, in,out,N);
+  hipLaunchKernelGGL(device_reduce_stable_kernel, dim3(1), dim3(1024), 0, 0, out,out,blocks); 
 }
 
 __global__ void device_reduce_stable_kernel_vector2(int *in, int* out, int N) {
@@ -66,8 +67,8 @@ void device_reduce_stable_vector2(int *in, int* out, int N) {
   int threads=512;
   int blocks=min((N/2+threads-1)/threads,1024);
 
-  device_reduce_stable_kernel_vector2<<<blocks,threads>>>(in,out,N);
-  device_reduce_stable_kernel<<<1,1024>>>(out,out,blocks); 
+  hipLaunchKernelGGL(device_reduce_stable_kernel_vector2, dim3(blocks), dim3(threads), 0, 0, in,out,N);
+  hipLaunchKernelGGL(device_reduce_stable_kernel, dim3(1), dim3(1024), 0, 0, out,out,blocks); 
 }
 
 __global__ void device_reduce_stable_kernel_vector4(int *in, int* out, int N) {
@@ -90,6 +91,6 @@ void device_reduce_stable_vector4(int *in, int* out, int N) {
   int threads=512;
   int blocks=min((N/4+threads-1)/threads,1024);
 
-  device_reduce_stable_kernel_vector4<<<blocks,threads>>>(in,out,N);
-  device_reduce_stable_kernel<<<1,1024>>>(out,out,blocks); 
+  hipLaunchKernelGGL(device_reduce_stable_kernel_vector4, dim3(blocks), dim3(threads), 0, 0, in,out,N);
+  hipLaunchKernelGGL(device_reduce_stable_kernel, dim3(1), dim3(1024), 0, 0, out,out,blocks); 
 }

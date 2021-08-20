@@ -29,13 +29,13 @@
 #include "device_reduce_block_atomic.h"
 #include "device_reduce_warp_atomic.h"
 #include "device_reduce_stable.h"
-#include "vector_functions.h"
-#include "cub/cub/cub.cuh"
+#include "texture_functions.h"
+#include "hipcub/hipcub.hpp"
 
 #define cudaCheckError() {                                          \
-  cudaError_t e=cudaGetLastError();                                  \
-  if(e!=cudaSuccess) {                                               \
-  printf("Cuda failure %s:%d: '%s'\n",__FILE__,__LINE__,cudaGetErrorString(e));           \
+  hipError_t e=hipGetLastError();                                  \
+  if(e!=hipSuccess) {                                               \
+  printf("Cuda failure %s:%d: '%s'\n",__FILE__,__LINE__,hipGetErrorString(e));           \
   exit(0); \
   }                                                                  \
 }
@@ -49,40 +49,40 @@ void RunTest(char* label, void (*fptr)(int* in, int* out, int N), int N, int REP
   
   //compute mod base for picking the correct buffer
   int mod=size/(N*sizeof(int));
-  cudaEvent_t start,stop;
-  cudaMalloc(&in,size);
-  cudaMalloc(&out,sizeof(int)*1024);  //only stable version needs multiple elements, all others only need 1
-  cudaEventCreate(&start);
-  cudaEventCreate(&stop);
+  hipEvent_t start,stop;
+  hipMalloc(&in,size);
+  hipMalloc(&out,sizeof(int)*1024);  //only stable version needs multiple elements, all others only need 1
+  hipEventCreate(&start);
+  hipEventCreate(&stop);
   cudaCheckError();
 
-  cudaMemcpy(in,src,N*sizeof(int),cudaMemcpyHostToDevice);
+  hipMemcpy(in,src,N*sizeof(int),hipMemcpyHostToDevice);
   
   //warm up
   fptr(in,out,N);
 
-  cudaDeviceSynchronize();
+  hipDeviceSynchronize();
   cudaCheckError();
-  cudaEventRecord(start);
+  hipEventRecord(start);
 
   for(int i=0;i<REPEAT;i++) {
     //iterate through different buffers
     int o=i%mod;
     fptr(in+o*N,out,N);
   }
-  cudaEventRecord(stop);
-  cudaDeviceSynchronize();
+  hipEventRecord(stop);
+  hipDeviceSynchronize();
   cudaCheckError();
 
   float time_ms;
-  cudaEventElapsedTime(&time_ms,start,stop);
+  hipEventElapsedTime(&time_ms,start,stop);
   float time_s=time_ms/(float)1e3;
 
   float GB=(float)N*sizeof(int)*REPEAT;
   float GBs=GB/time_s/(float)1e9;
 
   int sum;
-  cudaMemcpy(&sum,out,sizeof(int),cudaMemcpyDeviceToHost);
+  hipMemcpy(&sum,out,sizeof(int),hipMemcpyDeviceToHost);
   cudaCheckError();
 
   char *valid;
@@ -92,50 +92,52 @@ void RunTest(char* label, void (*fptr)(int* in, int* out, int N), int N, int REP
     valid="INCORRECT";
 
   printf("%s: %s, Time: %f s, GB/s: %f\n", label, valid, time_s, GBs); 
-  cudaEventDestroy(start);
-  cudaEventDestroy(stop);
-  cudaFree(in);
-  cudaFree(out);
+  hipEventDestroy(start);
+  hipEventDestroy(stop);
+  hipFree(in);
+  hipFree(out);
   cudaCheckError();
 }
 
 void RunTestCub(char* label, int N, int REPEAT, int* src, int checksum) {
   int *in, *out;
-  cudaEvent_t start,stop;
+  hipEvent_t start,stop;
   
-  cudaMalloc(&in,sizeof(int)*N);
-  cudaMalloc(&out,sizeof(int)*1024);  //only stable version needs multiple elements, all others only need 1
-  cudaEventCreate(&start);
-  cudaEventCreate(&stop);
+  hipMalloc(&in,sizeof(int)*N);
+  hipMalloc(&out,sizeof(int)*1024);  //only stable version needs multiple elements, all others only need 1
+  hipEventCreate(&start);
+  hipEventCreate(&stop);
   cudaCheckError();
 
-  cudaMemcpy(in,src,N*sizeof(int),cudaMemcpyHostToDevice);
+  hipMemcpy(in,src,N*sizeof(int),hipMemcpyHostToDevice);
 
   size_t temp_storage_bytes;
   int* temp_storage=NULL;
-  cub::DeviceReduce::Reduce(temp_storage, temp_storage_bytes, in, out, N, cub::Sum());
-  cudaMalloc(&temp_storage,temp_storage_bytes);
+  //hipcub::DeviceReduce::Reduce(temp_storage, temp_storage_bytes, in, out, N, hipcub::Sum());
+  hipcub::DeviceReduce::Sum(temp_storage, temp_storage_bytes, in, out, N);
+  hipMalloc(&temp_storage,temp_storage_bytes);
 
-  cudaDeviceSynchronize();
+  hipDeviceSynchronize();
   cudaCheckError();
-  cudaEventRecord(start);
+  hipEventRecord(start);
 
   for(int i=0;i<REPEAT;i++) {
-    cub::DeviceReduce::Reduce(temp_storage, temp_storage_bytes, in, out, N, cub::Sum());
+    //hipcub::DeviceReduce::Reduce(temp_storage, temp_storage_bytes, in, out, N, hipcub::Sum());
+    hipcub::DeviceReduce::Sum(temp_storage, temp_storage_bytes, in, out, N);
   }
-  cudaEventRecord(stop);
-  cudaDeviceSynchronize();
+  hipEventRecord(stop);
+  hipDeviceSynchronize();
   cudaCheckError();
 
   float time_ms;
-  cudaEventElapsedTime(&time_ms,start,stop);
+  hipEventElapsedTime(&time_ms,start,stop);
   float time_s=time_ms/(float)1e3;
 
   float GB=(float)N*sizeof(int)*REPEAT;
   float GBs=GB/time_s/(float)1e9;
 
   int sum;
-  cudaMemcpy(&sum,out,sizeof(int),cudaMemcpyDeviceToHost);
+  hipMemcpy(&sum,out,sizeof(int),hipMemcpyDeviceToHost);
   cudaCheckError();
 
   char *valid;
@@ -145,11 +147,11 @@ void RunTestCub(char* label, int N, int REPEAT, int* src, int checksum) {
     valid="INCORRECT";
 
   printf("%s: %s, Time: %f s, GB/s: %f\n", label, valid, time_s, GBs); 
-  cudaEventDestroy(start);
-  cudaEventDestroy(stop);
-  cudaFree(in);
-  cudaFree(out);
-  cudaFree(temp_storage);
+  hipEventDestroy(start);
+  hipEventDestroy(stop);
+  hipFree(in);
+  hipFree(out);
+  hipFree(temp_storage);
   cudaCheckError();
 }
 

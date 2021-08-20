@@ -25,7 +25,7 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 reduce: main.cu *.h
-	nvcc -O3 main.cu -o reduce -arch=sm_35
+	hipcc -O3 main.cu -o reduce
 
 clean:
 	rm -f reduce
