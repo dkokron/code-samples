@@ -25,8 +25,10 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 reduce: main.cu *.h
-	nvcc -O3 -std=c++17 main.cu -o reduce -arch=sm_70 -I/nasa/cuda/11.2/targets/x86_64-linux/include
+	nvcc -O3 -std=c++17 -DDATATYPE=int -DVECTYPE=int2 mainTemplate.cu -o reduceInt.x -arch=sm_70
+	nvcc -O3 -std=c++17 -DDATATYPE=float -DVECTYPE=float2 mainTemplate.cu -o reduceFloat.x -arch=sm_70
+	nvcc -O3 -std=c++17 -DDATATYPE=double -DVECTYPE=double2 mainTemplate.cu -o reduceDouble.x -arch=sm_70
 
 clean:
-	rm -f reduce
+	rm -f reduceInt.x reduceFloat.x reduceDouble.x
 
