@@ -24,9 +24,9 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-#define DATATYPE int
+#define DATATYPE double
 #define VL 2
-#define VECTYPE int2
+#define VECTYPE double2
 
 #include <cstdio>
 #include "device_reduce_atomic.h"
@@ -50,13 +50,14 @@ void RunTest(const char* label, void (*fptr)(T* in, T* out, int N), int N, int R
   T *in, *out;
   
   //allocate a buffer that is at least large enough that we can ensure it doesn't just sit in l2.
-  int MIN_SIZE=4*1024*1024;
-  int size=max(int(sizeof(T)*N),MIN_SIZE);
+  //int MIN_SIZE=4*1024*1024;
+  //int size=max(int(sizeof(T)*N),MIN_SIZE);
   
   //compute mod base for picking the correct buffer
-  int mod=size/(N*sizeof(T));
+  //int mod=size/(N*sizeof(T));
   cudaEvent_t start,stop;
-  cudaMalloc(&in,size);
+  //cudaMalloc(&in,size);
+  cudaMalloc(&in,sizeof(T)*N);
   cudaMalloc(&out,sizeof(T)*1024);  //only stable version needs multiple elements, all others only need 1
   cudaEventCreate(&start);
   cudaEventCreate(&stop);
@@ -65,7 +66,7 @@ void RunTest(const char* label, void (*fptr)(T* in, T* out, int N), int N, int R
   cudaMemcpy(in,src,N*sizeof(T),cudaMemcpyHostToDevice);
   
   //warm up
-  fptr(in,out,N);
+  //fptr(in,out,N);
 
   cudaDeviceSynchronize();
   cudaCheckError();
@@ -73,8 +74,9 @@ void RunTest(const char* label, void (*fptr)(T* in, T* out, int N), int N, int R
 
   for(int i=0;i<REPEAT;i++) {
     //iterate through different buffers
-    int o=i%mod;
-    fptr(in+o*N,out,N);
+    //int o=i%mod;
+    //fptr(in+o*N,out,N);
+    fptr(in,out,N);
   }
   cudaEventRecord(stop);
   cudaDeviceSynchronize();
@@ -178,12 +180,13 @@ int main(int argc, char** argv)
   DATATYPE* vals=(DATATYPE*)malloc(NUM_ELEMS*sizeof(DATATYPE));
   int csum = 0;
   for(int i=0;i<NUM_ELEMS;i++) {
-    vals[i]=(DATATYPE)(rand()%4);
+    //vals[i]=(DATATYPE)(rand()%4);
+    vals[i]= (DATATYPE)(2-rand()%5);
     csum+=(int)vals[i];
-    //printf("Main: %d %f %d \n",i,vals[i],csum);
+    //printf("Main: %d %d %d \n",i,vals[i],csum);
   }
   DATATYPE checksum = (DATATYPE)csum;
-  printf("Main: checksum=%d \n",checksum);
+  //printf("Main: checksum=%d \n",checksum);
 
   RunTest<DATATYPE>("device_reduce_atomic", device_reduce_atomic,NUM_ELEMS,REPEAT,vals,checksum);
   RunTest<DATATYPE>("device_reduce_atomic_vector", device_reduce_atomic_vector<DATATYPE,VECTYPE,VL>,NUM_ELEMS,REPEAT,vals,checksum);
