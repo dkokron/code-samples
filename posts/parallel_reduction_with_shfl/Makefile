@@ -24,9 +24,11 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-reduce: main.cu *.h
-	hipcc -O3 main.cu -o reduce
+reduce: mainTemplate.cu *.h
+	hipcc -O3 -std=c++17 -DDATATYPE=int -DVECTYPE=int2 mainTemplate.cu -o reduceInt.x -I/opt/rocm-4.3.0/hip/include/hip/amd_detail -I/nobackup/HOME/dkokron/code-samples/posts/parallel_reduction_with_shfl/hipCUB/install/hipcub/include -I/nobackup/HOME/dkokron/code-samples/posts/parallel_reduction_with_shfl/hipCUB/build/rocprim-src/rocprim/include
+	hipcc -O3 -std=c++17 -DDATATYPE=float -DVECTYPE=float2 mainTemplate.cu -o reduceFloat.x -I/opt/rocm-4.3.0/hip/include/hip/amd_detail -I/nobackup/HOME/dkokron/code-samples/posts/parallel_reduction_with_shfl/hipCUB/install/hipcub/include -I/nobackup/HOME/dkokron/code-samples/posts/parallel_reduction_with_shfl/hipCUB/build/rocprim-src/rocprim/include
+	hipcc -O3 -std=c++17 -DDATATYPE=double -DVECTYPE=double2 mainTemplate.cu -o reduceDouble.x -I/opt/rocm-4.3.0/hip/include/hip/amd_detail -I/nobackup/HOME/dkokron/code-samples/posts/parallel_reduction_with_shfl/hipCUB/install/hipcub/include -I/nobackup/HOME/dkokron/code-samples/posts/parallel_reduction_with_shfl/hipCUB/build/rocprim-src/rocprim/include
 
 clean:
-	rm -f reduce
+	rm -f reduceInt.x reduceFloat.x reduceDouble.x
 
