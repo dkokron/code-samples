@@ -32,7 +32,20 @@ HIGH=27
 
 HEADER=`./reduceInt.x 100 1 | grep -v NUM_ELEMS | cut -d ":" -f 1`
 HEADER="SIZE $HEADER"
-echo $HEADER 
+echo $HEADER
+for (( i=$LOW; i<=$HIGH; i++ ))
+do
+  size=`echo "$BASE^$i" | bc`
+  TIMES=`./reduceInt.x $size 100 | grep -v NUM_ELEMS | cut -d ":" -f 4 | cut -f 2 -d " "`
+  bytes=`echo "$size*4" | bc`
+  echo $bytes $TIMES
+done
+echo "  "
+
+# Float
+HEADER=`./reduceFloat.x 100 1 | grep -v NUM_ELEMS | cut -d ":" -f 1`
+HEADER="SIZE $HEADER"
+echo $HEADER
 for (( i=$LOW; i<=$HIGH; i++ ))
 do
   size=`echo "$BASE^$i" | bc`
@@ -43,9 +56,11 @@ done
 echo "  "
 
 # Double
+LOW=9
+HIGH=26
 HEADER=`./reduceDouble.x 100 1 | grep -v NUM_ELEMS | cut -d ":" -f 1`
 HEADER="SIZE $HEADER"
-echo $HEADER 
+echo $HEADER
 for (( i=$LOW; i<=$HIGH; i++ ))
 do
   size=`echo "$BASE^$i" | bc`
