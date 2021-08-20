@@ -30,8 +30,9 @@
 
 #include "block_reduce.h"
 
-__global__ void device_reduce_stable_kernel(int *in, int* out, int N) {
-  int sum=int(0);
+template <typename T>
+__global__ void device_reduce_stable_kernel(T *in, T* out, int N) {
+  T sum=T(0);
   for(int i=blockIdx.x*blockDim.x+threadIdx.x;i<N;i+=blockDim.x*gridDim.x) {
     sum+=in[i];
   }
@@ -40,12 +41,13 @@ __global__ void device_reduce_stable_kernel(int *in, int* out, int N) {
     out[blockIdx.x]=sum;
 }
 
-void device_reduce_stable(int *in, int* out, int N) {
+template <typename T>
+void device_reduce_stable(T *in, T* out, int N) {
   int threads=512;
   int blocks=min((N+threads-1)/threads,1024);
 
-  hipLaunchKernelGGL(device_reduce_stable_kernel, dim3(blocks), dim3(threads), 0, 0, in,out,N);
-  hipLaunchKernelGGL(device_reduce_stable_kernel, dim3(1), dim3(1024), 0, 0, out,out,blocks); 
+  hipLaunchKernelGGL(HIP_KERNEL_NAME(device_reduce_stable_kernel<T>), dim3(blocks), dim3(threads), 0, 0, in,out,N);
+  hipLaunchKernelGGL(HIP_KERNEL_NAME(device_reduce_stable_kernel<T>), dim3(1), dim3(1024), 0, 0, out,out,blocks); 
 }
 
 __global__ void device_reduce_stable_kernel_vector2(int *in, int* out, int N) {
@@ -93,4 +95,29 @@ void device_reduce_stable_vector4(int *in, int* out, int N) {
 
   hipLaunchKernelGGL(device_reduce_stable_kernel_vector4, dim3(blocks), dim3(threads), 0, 0, in,out,N);
   hipLaunchKernelGGL(device_reduce_stable_kernel, dim3(1), dim3(1024), 0, 0, out,out,blocks); 
+}
+
+template <typename T, typename T2, int T3>
+__global__ void device_reduce_stable_kernel_vector(T *in, T* out, int N) {
+  T sum=0;
+  int idx=blockIdx.x*blockDim.x+threadIdx.x;
+  for(int i=idx;i<N/T3;i+=blockDim.x*gridDim.x) {
+    T2 val=reinterpret_cast<T2*>(in)[i];
+    sum+=val.x+val.y;
+  }
+  int i=idx+N/T3*T3;
+  if(i<N)
+    sum+=in[i];
+  sum=blockReduceSum<T>(sum);
+  if(threadIdx.x==0)
+    out[blockIdx.x]=sum;
+}
+
+template <typename T, typename T2, int T3>
+void device_reduce_stable_vector(T *in, T* out, int N) {
+  int threads=512;
+  int blocks=min((N/T3+threads-1)/threads,1024);
+
+  hipLaunchKernelGGL(HIP_KERNEL_NAME(device_reduce_stable_kernel_vector<T,T2,T3>), dim3(blocks), dim3(threads), 0, 0, in,out,N);
+  hipLaunchKernelGGL(HIP_KERNEL_NAME(device_reduce_stable_kernel<T>), dim3(1), dim3(1024), 0, 0, out,out,blocks);
 }
