@@ -24,9 +24,13 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+#ifndef DATATYPE
 #define DATATYPE double
-#define VL 2
+#endif
+#ifndef VECTYPE
 #define VECTYPE double2
+#endif
+#define VL 2
 
 #include <cstdio>
 #include "device_reduce_atomic.h"
