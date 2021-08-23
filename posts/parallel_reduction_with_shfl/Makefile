@@ -24,7 +24,7 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-reduce: main.cu *.h
+reduce: mainTemplate.cu *.h
 	nvcc -O3 -std=c++17 -DDATATYPE=int -DVECTYPE=int2 mainTemplate.cu -o reduceInt.x -arch=sm_70
 	nvcc -O3 -std=c++17 -DDATATYPE=float -DVECTYPE=float2 mainTemplate.cu -o reduceFloat.x -arch=sm_70
 	nvcc -O3 -std=c++17 -DDATATYPE=double -DVECTYPE=double2 mainTemplate.cu -o reduceDouble.x -arch=sm_70
