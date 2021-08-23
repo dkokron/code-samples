@@ -32,7 +32,11 @@ template <typename T>
 __inline__ __device__
 T warpReduceSum(T val) {
   for (int offset = warpSize/2; offset > 0; offset /= 2)
+#if defined(__HIPCC__)
+    val += __shfl_down(val,offset);
+#elif defined(__CUDACC__)
     val += __shfl_down_sync(0xFFFFFFFFU,val,offset);
+#endif
   return val;
 }
 

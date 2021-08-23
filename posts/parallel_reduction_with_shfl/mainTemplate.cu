@@ -37,9 +37,14 @@
 #include "device_reduce_block_atomic.h"
 #include "device_reduce_warp_atomic.h"
 #include "device_reduce_stable.h"
+#if defined(__HIPCC__)
+#include "texture_functions.h"
+#include "hipcub/hipcub.hpp"
+#elif defined(__CUDACC__)
 #include "vector_functions.h"
 #include "cub/cub.cuh"
 //#include "cub/cub/cub.cuh"
+#endif
 
 #define cudaCheckError() {                                          \
   cudaError_t e=cudaGetLastError();                                  \
